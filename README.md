@@ -10,6 +10,7 @@
 
 ## Running the code 
 python3 main.py --data_dir='../3d print data' --import_img_list=True --saved_img_labels=label_img_list[0-15].pkl --percent_labels=10 --crop_mode=random --crops_per_img=10
-*remember to change the tag --saved_img_labels=label_img_list[0-15].pkl according to which batch you are labeling!*
+### Notes
+Remember to change the tag --saved_img_labels=label_img_list[0-15].pkl according to which batch you are labeling!
 
 
