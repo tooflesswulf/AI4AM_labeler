@@ -1,0 +1,8 @@
+3d print data/185deg_1/seq0/1613234378.93341_0.png, (235, 285), Normal
+3d print data/185deg_1/seq0/1613234008.8341274_0.png, (51, 91), Normal
+3d print data/185deg_1/seq0/1613233406.0364556_0.png, (16, 546), Over-extrusion
+3d print data/185deg_1/seq0/1613233021.144233_0.png, (51, 541), Normal
+3d print data/185deg_1/seq0/1613233948.5120494_0.png, (72, 113), Normal
+3d print data/185deg_1/seq0/1613233526.5396423_0.png, (154, 513), Over-extrusion
+3d print data/185deg_1/seq0/1613233526.5396423_0.png, (13, 424), Normal
+3d print data/185deg_1/seq0/1613234069.1516876_0.png, (9, 493), Over-extrusion
