@@ -70,7 +70,7 @@ class GUI():
         self.display_im(im)
     def done(self): 
         print('Writing labels to file...')
-        with open('./labels.txt', 'w') as f: 
+        with open('./labels_%s.txt' %FLAGS.saved_img_labels[:-4], 'w') as f: 
             for i in range(len(self.img_list)): 
                 f.write('%s, (%d, %d), %s\n' % (self.img_list[i][0], self.img_list[i][1][0], self.img_list[i][1][1], self.labels[i+1]))
         print('DONE!!')

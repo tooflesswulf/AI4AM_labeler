@@ -20,11 +20,11 @@ def random_crop(height, width):
 # return two lists with file path and location of each sample and each sample to be labeled 
 def sample_img(height, width): 
 	if FLAGS.import_img_list: 
-		with open('img_list.pkl', 'rb') as f: 
-		 	img_list = pickle.load(f)
-		with open('label_img_list.pkl', 'rb') as f: 
+		# with open('img_list.pkl', 'rb') as f: 
+		#  	img_list = pickle.load(f)
+		with open(FLAGS.saved_img_labels, 'rb') as f: 
 			label_img_list = pickle.load(f)
-		return img_list, label_img_list
+		return None, label_img_list
 	img_list = []
 	label_img_list = []
 	p = 0.01*FLAGS.percent_labels
@@ -34,6 +34,8 @@ def sample_img(height, width):
 			if root[-8:] == 'unsorted': 
 				# print(os.path.join(root, name))
 				continue 
+			if name[-3:] != 'png' and name[-3:] != 'jpg' and name[-4:] != 'JPEG': 
+				continue 
 			im_path = os.path.join(root, name)
 			locs = random_crop(height, width)
 			mask = np.random.random(FLAGS.crops_per_img)
@@ -42,10 +44,16 @@ def sample_img(height, width):
 
 		for name in dirs:
 			pass
-	# with open('img_list.pkl', 'wb') as f: 
-	# 	pickle.dump(img_list, f)
-	# with open('label_img_list.pkl', 'wb') as f: 
-	# 	pickle.dump(label_img_list, f)
+	# print(len(img_list))
+	# print(len(label_img_list))
+	if FLAGS.save_crops: 
+		with open('img_list.pkl', 'wb') as f: 
+			pickle.dump(img_list, f)
+
+		batch_size = 50
+		for i in range((len(label_img_list)//batch_size)+1): 
+			with open('label_img_list%d.pkl'%i, 'wb') as f: 
+				pickle.dump(label_img_list[i*batch_size:(i+1)*batch_size], f)
 	return img_list, label_img_list
 
 
