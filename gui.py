@@ -6,7 +6,8 @@ from absl import flags
 import threading
 import time
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
+# TK_SILENCE_DEPRECATION=1
 
 FLAGS = flags.FLAGS
 

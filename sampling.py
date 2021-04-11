@@ -14,6 +14,9 @@ class Sampler:
         self.num_crop = num_crop
 
         self.paths = paths
+        if FLAGS.import_img_list: 
+            with open(FLAGS.saved_img_labels, 'rb') as f:
+                self.saved_crops = pickle.load(f)
 
     def random_crop(self, n=1):
         locs = np.random.randint(
@@ -25,10 +28,14 @@ class Sampler:
         # return np.hstack([locs, locs + self.crop_size])
 
     def __iter__(self):
-        for fname in self.paths:
-            crops = self.random_crop(n=self.num_crop)
-            for c in crops:
+        if FLAGS.import_img_list: 
+            for fname, c in self.saved_crops: 
                 yield fname, c
+        else: 
+            for fname in self.paths:
+                crops = self.random_crop(n=self.num_crop)
+                for c in crops:
+                    yield fname, c
 
 
 def get_crop_map(height, width):
@@ -49,13 +56,13 @@ def random_crop(height, width):
 def sample_img(height, width):
     if FLAGS.import_img_list:
         # with open('img_list.pkl', 'rb') as f:
-        #  	img_list = pickle.load(f)
+        #   img_list = pickle.load(f)
         with open(FLAGS.saved_img_labels, 'rb') as f:
             label_img_list = pickle.load(f)
         return None, label_img_list
     img_list = []
     label_img_list = []
-    p = FLAGS.percent_labels
+    p = FLAGS.percent_labels 
     for root, dirs, files in os.walk(FLAGS.data_dir, topdown=False):
         for name in files:
             # print(os.path.join(root, name))
