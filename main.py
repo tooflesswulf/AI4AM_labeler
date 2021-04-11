@@ -32,7 +32,7 @@ def main(argv):
         print('No data_dir specified. See --help')
         return 0
 
-    img_paths = [p for p in image_walk(FLAGS.data_dir)]
+    img_paths = list(image_walk(FLAGS.data_dir))
     random.shuffle(img_paths)
 
     samp = sampling.Sampler(img_paths,
