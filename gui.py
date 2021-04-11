@@ -6,7 +6,8 @@ from absl import flags
 import threading
 import time
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
+# TK_SILENCE_DEPRECATION=1
 
 FLAGS = flags.FLAGS
 
@@ -42,7 +43,7 @@ class AsyncImageLoader:
     def __next__(self):
         while not self.finished and len(self.ready_queue) == 0:
             time.sleep(.2)
-        if self.finished:
+        if self.finished and len(self.ready_queue) == 0:
             self.t.join()
             raise StopIteration
 
@@ -88,7 +89,9 @@ class GUI():
         try:
             drow, im = next(self.img_iter)
             self.img_list.append(drow)
+            # print(len(self.img_list))
         except StopIteration:
+            # print(len(self.img_list))
             self.done()
             return
 
@@ -113,29 +116,35 @@ class GUI():
     def _button1(self, event):
         if self._lock():
             return
-        self._next_im()
         print('Under-extrusion')
         self.labels.append('Under-extrusion')
+        self._next_im()
 
     def _button2(self, event):
         if self._lock():
             return
-        self._next_im()
+        # self._next_im()
         print('Normal')
         self.labels.append('Normal')
+        self._next_im()
 
     def _button3(self, event):
         if self._lock():
             return
-        self._next_im()
+        # self._next_im()
         print('Over-extrusion')
         self.labels.append('Over-extrusion')
+        self._next_im()
 
     def done(self):
         print('Writing labels to file...')
-        with open('./labels_%s.txt' % FLAGS.saved_img_labels[:-4], 'w') as f:
+        if FLAGS.import_img_list: 
+            fileName = './labels_%s.txt' % FLAGS.saved_img_labels[:-4]
+        else: 
+            fileName = './labels.txt'
+        with open(fileName, 'w') as f:
             for i in range(len(self.img_list)):
                 f.write('%s, (%d, %d), %s\n' % (
-                    self.img_list[i][0], self.img_list[i][1][0], self.img_list[i][1][1], self.labels[i + 1]))
+                    self.img_list[i][0], self.img_list[i][1][0], self.img_list[i][1][1], self.labels[i]))
         print('DONE!!')
         exit()

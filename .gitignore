@@ -1,7 +1,5 @@
 /__pycache__/*
 .idea/*
 test.py
+labels_label_img_list*.txt
 .DS_Store
-
-3d print data
-
