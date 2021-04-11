@@ -1,20 +1,67 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib.widgets import Button
-from absl import app
 from absl import flags
-import sampling
+import threading
+import time
+
+matplotlib.use('TkAgg')
 
 FLAGS = flags.FLAGS
 
-class GUI(): 
-    def __init__(self, img_list=None): 
+
+class AsyncImageLoader:
+    def __init__(self, im_iter, lookahead=3):
+        self.im_iter = im_iter
+        self.ready_queue = []
+        self.im_queue = []
+        self.lookahead = lookahead
+
+        self.t = threading.Thread(target=self.consume)
+        self.t.start()
+        self.finished = False
+
+    def consume(self):
+        last_path = None
+        for path, bbox in self.im_iter:
+            if last_path is None or last_path != path:
+                im = plt.imread(path)
+                last_path = path
+
+            # x, y, lx, ly = bbox
+            x, y = bbox
+            lx, ly = x + FLAGS.crop_size, y + FLAGS.crop_size
+            self.ready_queue.append((path, bbox))
+            self.im_queue.append(im[x:lx, y:ly])
+
+            while len(self.ready_queue) >= self.lookahead:
+                time.sleep(.2)
+        self.finished = True
+
+    def __next__(self):
+        while not self.finished and len(self.ready_queue) == 0:
+            time.sleep(.2)
+        if self.finished:
+            self.t.join()
+            raise StopIteration
+
+        ret = self.ready_queue[0], self.im_queue[0]
+        del self.ready_queue[0]
+        del self.im_queue[0]
+        return ret
+
+
+class GUI():
+    def __init__(self, img_iter=None):
+        self.locked = False
+
         fig = plt.figure(1, figsize=(6, 6))
-        ax1 = plt.subplot(4, 3, (1, 9)) # image displayer
-        ax2 = plt.subplot(4, 3, 10) # button1
-        ax3 = plt.subplot(4, 3, 11) # button2
-        ax4 = plt.subplot(4, 3, 12) # button3
-        fig.canvas.mpl_connect('key_press_event', self._on_press)
+        ax1 = plt.subplot(4, 3, (1, 9))  # image displayer
+        ax2 = plt.subplot(4, 3, 10)  # button1
+        ax3 = plt.subplot(4, 3, 11)  # button2
+        ax4 = plt.subplot(4, 3, 12)  # button3
+        # fig.canvas.mpl_connect('key_press_event', self._on_press)
         b1 = Button(ax2, label='Under-extrusion', color='grey', hovercolor='green')
         b1.on_clicked(self._button1)
         b2 = Button(ax3, label='Normal', color='grey', hovercolor='green')
@@ -23,56 +70,72 @@ class GUI():
         b3.on_clicked(self._button3)
         self.fig = fig
         self.axs = [ax1, ax2, ax3, ax4]
-        self.img_list = img_list
-        self.img_iter = iter(img_list)
+        self.img_iter = img_iter
+        self.img_list = []
         self.labels = []
-        plt.show()
-        return 
 
-    def display_im(self, im): 
+        self._next_im()
+        plt.show()
+
+    def display_im(self, im):
+        self.axs[0].clear()
         self.axs[0].imshow(im)
+        plt.draw()
         # plt.show()
         pass
 
     def get_next_im(self):
-        try: 
-            im_path, loc = next(self.img_iter)
-        except StopIteration: 
+        try:
+            drow, im = next(self.img_iter)
+            self.img_list.append(drow)
+        except StopIteration:
             self.done()
-        im = plt.imread(im_path)
-        # self.axs[0].imshow(im[loc[0]:loc[0]+FLAGS.crop_size, loc[1]:loc[1]+FLAGS.crop_size, :])
-        return im[loc[0]:loc[0]+FLAGS.crop_size, loc[1]:loc[1]+FLAGS.crop_size, :]
+            return
 
-    def _on_press(self, event): 
-        if FLAGS.key_input: 
-            if event.key == '1': 
-                self._button1(event)
-            elif event.key == '2': 
-                self._button2(event)
-            elif event.key == '3': 
-                self._button3(event)
-            else: 
-                pass
-    def _button1(self, event): 
+        return im
+        # self.axs[0].imshow(im[loc[0]:loc[0]+FLAGS.crop_size, loc[1]:loc[1]+FLAGS.crop_size, :])
+        # return im[loc[0]:loc[0] + FLAGS.crop_size, loc[1]:loc[1] + FLAGS.crop_size, :]
+
+    def _lock(self):
+        if not self.locked:
+            self.locked = True
+            return False
+        return True
+
+    def _unlock(self):
+        self.locked = False
+
+    def _next_im(self):
+        im = self.get_next_im()
+        self.display_im(im)
+        self._unlock()
+
+    def _button1(self, event):
+        if self._lock():
+            return
+        self._next_im()
         print('Under-extrusion')
         self.labels.append('Under-extrusion')
-        im = self.get_next_im()
-        self.display_im(im)
-    def _button2(self, event): 
+
+    def _button2(self, event):
+        if self._lock():
+            return
+        self._next_im()
         print('Normal')
         self.labels.append('Normal')
-        im = self.get_next_im()
-        self.display_im(im)
-    def _button3(self, event): 
+
+    def _button3(self, event):
+        if self._lock():
+            return
+        self._next_im()
         print('Over-extrusion')
         self.labels.append('Over-extrusion')
-        im = self.get_next_im()
-        self.display_im(im)
-    def done(self): 
+
+    def done(self):
         print('Writing labels to file...')
-        with open('./labels_%s.txt' %FLAGS.saved_img_labels[:-4], 'w') as f: 
-            for i in range(len(self.img_list)): 
-                f.write('%s, (%d, %d), %s\n' % (self.img_list[i][0], self.img_list[i][1][0], self.img_list[i][1][1], self.labels[i+1]))
+        with open('./labels_%s.txt' % FLAGS.saved_img_labels[:-4], 'w') as f:
+            for i in range(len(self.img_list)):
+                f.write('%s, (%d, %d), %s\n' % (
+                    self.img_list[i][0], self.img_list[i][1][0], self.img_list[i][1][1], self.labels[i + 1]))
         print('DONE!!')
         exit()
-
