@@ -1,2 +1,4 @@
 /__pycache__/*
 test.py
+labels_label_img_list*.txt
+.DS_Store
